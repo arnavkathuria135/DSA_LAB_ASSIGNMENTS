@@ -1,0 +1,448 @@
+// ============================================================================
+// LAB ASSIGNMENT 8 – BST & HEAP  (FULL SOLUTION)
+// Reference: Lab_Assignment 8 (BST & Heap).pdf   :contentReference[oaicite:1]{index=1}
+// Compile: g++ -std=c++17 Lab8_BST_HEAP.cpp -O2 -o lab8
+// ============================================================================
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/* ============================================================================
+   BASIC NODE STRUCTURES
+   ============================================================================ */
+
+struct Node {
+    int data;
+    Node* left;
+    Node* right;
+    Node(int x) : data(x), left(NULL), right(NULL) {}
+};
+
+/* ============================================================================
+   Q1 — TREE TRAVERSALS (recursive)
+   ============================================================================ */
+
+void preorder(Node* root) {
+    if (!root) return;
+    cout << root->data << " ";
+    preorder(root->left);
+    preorder(root->right);
+}
+
+void inorder(Node* root) {
+    if (!root) return;
+    inorder(root->left);
+    cout << root->data << " ";
+    inorder(root->right);
+}
+
+void postorder(Node* root) {
+    if (!root) return;
+    postorder(root->left);
+    postorder(root->right);
+    cout << root->data << " ";
+}
+
+/* ============================================================================
+   Q2 — BST OPERATIONS
+   ============================================================================ */
+
+// Insert (no duplicates)
+Node* insertBST(Node* root, int x) {
+    if (!root) return new Node(x);
+    if (x < root->data) root->left = insertBST(root->left, x);
+    else if (x > root->data) root->right = insertBST(root->right, x);
+    return root;
+}
+
+// (a) Search — recursive
+bool searchRec(Node* root, int key) {
+    if (!root) return false;
+    if (root->data == key) return true;
+    return key < root->data ? searchRec(root->left, key)
+                            : searchRec(root->right, key);
+}
+
+// (a) Search — non-recursive
+bool searchIter(Node* root, int key) {
+    while (root) {
+        if (root->data == key) return true;
+        if (key < root->data) root = root->left;
+        else root = root->right;
+    }
+    return false;
+}
+
+// (b) Maximum element
+int maxBST(Node* root) {
+    if (!root) return -1;
+    while (root->right) root = root->right;
+    return root->data;
+}
+
+// (c) Minimum element
+int minBST(Node* root) {
+    if (!root) return -1;
+    while (root->left) root = root->left;
+    return root->data;
+}
+
+// (d) Inorder Successor
+Node* inorderSuccessor(Node* root, Node* target) {
+    Node* succ = NULL;
+    while (root) {
+        if (target->data < root->data) {
+            succ = root;
+            root = root->left;
+        } else {
+            root = root->right;
+        }
+    }
+    return succ;
+}
+
+// (e) Inorder Predecessor
+Node* inorderPredecessor(Node* root, Node* target) {
+    Node* pred = NULL;
+    while (root) {
+        if (target->data > root->data) {
+            pred = root;
+            root = root->right;
+        } else {
+            root = root->left;
+        }
+    }
+    return pred;
+}
+
+/* ============================================================================
+   Q3 — INSERT, DELETE, MAX DEPTH, MIN DEPTH
+   ============================================================================ */
+
+// Delete node from BST
+Node* deleteBST(Node* root, int key) {
+    if (!root) return NULL;
+    if (key < root->data) root->left = deleteBST(root->left, key);
+    else if (key > root->data) root->right = deleteBST(root->right, key);
+    else {
+        if (!root->left) {
+            Node* t = root->right;
+            delete root;
+            return t;
+        }
+        if (!root->right) {
+            Node* t = root->left;
+            delete root;
+            return t;
+        }
+        // inorder successor
+        Node* succ = root->right;
+        while (succ->left) succ = succ->left;
+        root->data = succ->data;
+        root->right = deleteBST(root->right, succ->data);
+    }
+    return root;
+}
+
+// Max depth (height)
+int maxDepth(Node* root) {
+    if (!root) return 0;
+    return 1 + max(maxDepth(root->left), maxDepth(root->right));
+}
+
+// Min depth
+int minDepth(Node* root) {
+    if (!root) return 0;
+    if (!root->left && !root->right) return 1;
+    if (!root->left) return 1 + minDepth(root->right);
+    if (!root->right) return 1 + minDepth(root->left);
+    return 1 + min(minDepth(root->left), minDepth(root->right));
+}
+
+/* ============================================================================
+   Q4 — Check if a binary tree is BST
+   ============================================================================ */
+
+bool isBSTUtil(Node* root, long long mn, long long mx) {
+    if (!root) return true;
+    if (root->data <= mn || root->data >= mx) return false;
+    return isBSTUtil(root->left, mn, root->data) &&
+           isBSTUtil(root->right, root->data, mx);
+}
+
+bool isBST(Node* root) {
+    return isBSTUtil(root, LLONG_MIN, LLONG_MAX);
+}
+
+/* ============================================================================
+   Q5 — Heapsort (Increasing / Decreasing)
+   ============================================================================ */
+
+// Max-heap for increasing order
+void heapify(vector<int>& a, int n, int i) {
+    int largest = i;
+    int l = 2*i+1, r = 2*i+2;
+    if (l < n && a[l] > a[largest]) largest = l;
+    if (r < n && a[r] > a[largest]) largest = r;
+    if (largest != i) {
+        swap(a[i], a[largest]);
+        heapify(a, n, largest);
+    }
+}
+
+void heapSortIncreasing(vector<int>& a) {
+    int n = a.size();
+    for (int i = n/2 - 1; i >= 0; i--) heapify(a, n, i);
+    for (int i = n-1; i >= 0; i--) {
+        swap(a[0], a[i]);
+        heapify(a, i, 0);
+    }
+}
+
+// Min-heap for decreasing
+void heapifyMin(vector<int>& a, int n, int i) {
+    int smallest = i, l = 2*i+1, r = 2*i+2;
+    if (l < n && a[l] < a[smallest]) smallest = l;
+    if (r < n && a[r] < a[smallest]) smallest = r;
+    if (smallest != i) {
+        swap(a[i], a[smallest]);
+        heapifyMin(a, n, smallest);
+    }
+}
+
+void heapSortDecreasing(vector<int>& a) {
+    int n = a.size();
+    for (int i = n/2 - 1; i >= 0; i--) heapifyMin(a, n, i);
+    for (int i = n-1; i >= 0; i--) {
+        swap(a[0], a[i]);
+        heapifyMin(a, i, 0);
+    }
+}
+
+/* ============================================================================
+   Q6 — Priority Queue using Heap
+   ============================================================================ */
+
+class PriorityQueueHeap {
+    vector<int> heap; // max heap
+public:
+    void push(int x) {
+        heap.push_back(x);
+        int i = heap.size() - 1;
+        while (i > 0 && heap[(i-1)/2] < heap[i]) {
+            swap(heap[(i-1)/2], heap[i]);
+            i = (i-1)/2;
+        }
+    }
+    void pop() {
+        if (heap.empty()) return;
+        heap[0] = heap.back();
+        heap.pop_back();
+        heapify(heap, heap.size(), 0);
+    }
+    int top() { return heap.empty() ? -1 : heap[0]; }
+    bool empty() { return heap.empty(); }
+};
+
+/* ============================================================================
+   Additional Q1 — Sum of Left Leaves
+   ============================================================================ */
+
+int sumLeftLeaves(Node* root, bool isLeft = false) {
+    if (!root) return 0;
+    if (!root->left && !root->right) return isLeft ? root->data : 0;
+    return sumLeftLeaves(root->left, true) +
+           sumLeftLeaves(root->right, false);
+}
+
+/* ============================================================================
+   Additional Q2 — Generate all unique BSTs with values 1..n
+   ============================================================================ */
+
+vector<Node*> generateTrees(int start, int end) {
+    if (start > end) return {NULL};
+    vector<Node*> result;
+    for (int i = start; i <= end; i++) {
+        auto left = generateTrees(start, i-1);
+        auto right = generateTrees(i+1, end);
+        for (auto l : left)
+            for (auto r : right) {
+                Node* root = new Node(i);
+                root->left = l;
+                root->right = r;
+                result.push_back(root);
+            }
+    }
+    return result;
+}
+
+vector<Node*> generateTrees(int n) {
+    return (n == 0) ? vector<Node*>() : generateTrees(1, n);
+}
+
+/* ============================================================================
+   Additional Q3 — Max depth using array input (level order with -1)
+   ============================================================================ */
+
+Node* buildTreeLevel(const vector<int>& arr) {
+    if (arr.empty() || arr[0] == -1) return NULL;
+    Node* root = new Node(arr[0]);
+    queue<Node*> q;
+    q.push(root);
+    int i = 1;
+    while (!q.empty() && i < arr.size()) {
+        Node* cur = q.front(); q.pop();
+        if (arr[i] != -1) {
+            cur->left = new Node(arr[i]);
+            q.push(cur->left);
+        }
+        i++;
+        if (i >= arr.size()) break;
+
+        if (arr[i] != -1) {
+            cur->right = new Node(arr[i]);
+            q.push(cur->right);
+        }
+        i++;
+    }
+    return root;
+}
+
+/* ============================================================================
+   Additional Q4 — Right View of Binary Tree
+   ============================================================================ */
+
+vector<int> rightView(Node* root) {
+    vector<int> res;
+    if (!root) return res;
+    queue<Node*> q;
+    q.push(root);
+    while (!q.empty()) {
+        int sz = q.size();
+        for (int i = 1; i <= sz; i++) {
+            Node* t = q.front(); q.pop();
+            if (i == sz) res.push_back(t->data);
+            if (t->left) q.push(t->left);
+            if (t->right) q.push(t->right);
+        }
+    }
+    return res;
+}
+
+/* ============================================================================
+   Additional Q5 — Construct tree from Preorder + Inorder
+   ============================================================================ */
+
+Node* buildPreIn(vector<int>& preorder, vector<int>& inorder,
+                 int ps, int pe, int is, int ie) {
+    if (ps > pe || is > ie) return NULL;
+    Node* root = new Node(preorder[ps]);
+    int idx = find(inorder.begin()+is, inorder.begin()+ie+1, root->data)
+              - inorder.begin();
+    int leftSize = idx - is;
+    root->left = buildPreIn(preorder, inorder, ps+1, ps+leftSize,
+                            is, idx-1);
+    root->right = buildPreIn(preorder, inorder, ps+leftSize+1, pe,
+                             idx+1, ie);
+    return root;
+}
+
+Node* buildTreePreIn(vector<int> preorder, vector<int> inorder) {
+    return buildPreIn(preorder, inorder, 0, preorder.size()-1,
+                      0, inorder.size()-1);
+}
+
+/* ============================================================================
+   Additional Q6 — Construct tree from Inorder + Postorder
+   ============================================================================ */
+
+Node* buildInPost(vector<int>& inorder, vector<int>& postorder,
+                  int is, int ie, int ps, int pe) {
+    if (is > ie || ps > pe) return NULL;
+    Node* root = new Node(postorder[pe]);
+    int idx = find(inorder.begin()+is, inorder.begin()+ie+1, root->data)
+              - inorder.begin();
+    int leftSize = idx - is;
+    root->left = buildInPost(inorder, postorder,
+                             is, idx-1,
+                             ps, ps+leftSize-1);
+    root->right = buildInPost(inorder, postorder,
+                              idx+1, ie,
+                              ps+leftSize, pe-1);
+    return root;
+}
+
+Node* buildTreeInPost(vector<int> inorder, vector<int> postorder) {
+    return buildInPost(inorder, postorder,
+                       0, inorder.size()-1,
+                       0, postorder.size()-1);
+}
+
+/* ============================================================================
+   Additional Q7 — Merge two BSTs into Sorted Doubly Linked List
+   ============================================================================ */
+
+struct DNode {
+    int data;
+    DNode *prev, *next;
+    DNode(int x): data(x), prev(NULL), next(NULL) {}
+};
+
+// Inorder traversal to push into vector
+void inorderToVector(Node* root, vector<int>& v) {
+    if (!root) return;
+    inorderToVector(root->left, v);
+    v.push_back(root->data);
+    inorderToVector(root->right, v);
+}
+
+DNode* mergeBSTtoDLL(Node* root1, Node* root2) {
+    vector<int> v;
+    inorderToVector(root1, v);
+    inorderToVector(root2, v);
+    sort(v.begin(), v.end());
+
+    if (v.empty()) return NULL;
+
+    DNode* head = new DNode(v[0]);
+    DNode* curr = head;
+    for (int i = 1; i < v.size(); i++) {
+        DNode* t = new DNode(v[i]);
+        curr->next = t;
+        t->prev = curr;
+        curr = t;
+    }
+    return head;
+}
+
+/* ============================================================================
+   MAIN — Simple demos
+   ============================================================================ */
+
+int main() {
+    cout << "=== Lab Assignment 8 : All Solutions Compiled Successfully ===\n";
+
+    // Minimal demonstration
+    Node* root = NULL;
+    root = insertBST(root, 20);
+    insertBST(root, 10);
+    insertBST(root, 30);
+    insertBST(root, 25);
+
+    cout << "Inorder Traversal: ";
+    inorder(root);
+    cout << "\n";
+
+    cout << "Is BST? " << (isBST(root) ? "Yes" : "No") << "\n";
+
+    cout << "Max Depth: " << maxDepth(root) << "\n";
+    cout << "Min Depth: " << minDepth(root) << "\n";
+
+    cout << "Sum of Left Leaves: " << sumLeftLeaves(root) << "\n";
+
+    vector<Node*> trees = generateTrees(3);
+    cout << "Generated " << trees.size() << " unique BSTs for n=3.\n";
+
+    cout << "=== End ===\n";
+    return 0;
+}

@@ -1,0 +1,323 @@
+// ================== LAB ASSIGNMENT 3 – STACKS ==================
+// Complete C++ solutions for ALL questions & additional questions
+// ===============================================================
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/*--------------------------------------------------------------
+ Q1 — Stack using Array (Menu-driven)
+--------------------------------------------------------------*/
+class ArrayStack {
+    int top, size;
+    int *arr;
+
+public:
+    ArrayStack(int n){
+        size = n;
+        arr = new int[n];
+        top = -1;
+    }
+
+    bool isFull(){ return top == size - 1; }
+    bool isEmpty(){ return top == -1; }
+
+    void push(int x){
+        if(isFull()) cout << "Stack Overflow\n";
+        else arr[++top] = x;
+    }
+
+    int pop(){
+        if(isEmpty()){
+            cout << "Stack Underflow\n";
+            return -1;
+        }
+        return arr[top--];
+    }
+
+    int peek(){
+        if(isEmpty()) return -1;
+        return arr[top];
+    }
+
+    void display(){
+        if(isEmpty()){
+            cout << "Stack Empty\n";
+            return;
+        }
+        for(int i = top; i >= 0; i--) cout << arr[i] << " ";
+        cout << "\n";
+    }
+};
+
+/*--------------------------------------------------------------
+ Q2 — Reverse a string using stack
+--------------------------------------------------------------*/
+string reverseUsingStack(string s){
+    stack<char> st;
+    for(char c : s) st.push(c);
+
+    string ans = "";
+    while(!st.empty()){
+        ans += st.top();
+        st.pop();
+    }
+    return ans;
+}
+
+/*--------------------------------------------------------------
+ Q3 — Balanced Parentheses
+--------------------------------------------------------------*/
+bool isBalanced(string s){
+    stack<char> st;
+
+    for(char c : s){
+        if(c=='(' || c=='{' || c=='[') st.push(c);
+        else{
+            if(st.empty()) return false;
+            char t = st.top(); st.pop();
+            if((t=='(' && c!=')') ||
+               (t=='{' && c!='}') ||
+               (t=='[' && c!=']'))
+                return false;
+        }
+    }
+    return st.empty();
+}
+
+/*--------------------------------------------------------------
+ Q4 — Infix to Postfix
+--------------------------------------------------------------*/
+int prec(char c){
+    if(c=='^') return 3;
+    if(c=='*' || c=='/') return 2;
+    if(c=='+' || c=='-') return 1;
+    return 0;
+}
+
+string infixToPostfix(string s){
+    stack<char> st;
+    string ans = "";
+
+    for(char c : s){
+        if(isalnum(c)) ans += c;
+
+        else if(c == '(') st.push(c);
+
+        else if(c == ')'){
+            while(!st.empty() && st.top()!='('){
+                ans += st.top();
+                st.pop();
+            }
+            st.pop(); // remove '('
+        }
+
+        else {
+            while(!st.empty() && prec(st.top()) >= prec(c)){
+                ans += st.top();
+                st.pop();
+            }
+            st.push(c);
+        }
+    }
+
+    while(!st.empty()){
+        ans += st.top();
+        st.pop();
+    }
+
+    return ans;
+}
+
+/*--------------------------------------------------------------
+ Q5 — Evaluate Postfix
+--------------------------------------------------------------*/
+int evaluatePostfix(string s){
+    stack<int> st;
+
+    for(char c : s){
+        if(isdigit(c)){
+            st.push(c - '0');
+        }
+        else{
+            int b = st.top(); st.pop();
+            int a = st.top(); st.pop();
+            switch(c){
+                case '+': st.push(a + b); break;
+                case '-': st.push(a - b); break;
+                case '*': st.push(a * b); break;
+                case '/': st.push(a / b); break;
+            }
+        }
+    }
+    return st.top();
+}
+
+/*--------------------------------------------------------------
+ Additional Q1 — Nearest Smaller Element to the Left
+--------------------------------------------------------------*/
+vector<int> nearestSmallerToLeft(vector<int>& arr){
+    stack<int> st;
+    vector<int> ans;
+
+    for(int x : arr){
+        while(!st.empty() && st.top() >= x)
+            st.pop();
+
+        ans.push_back(st.empty() ? -1 : st.top());
+        st.push(x);
+    }
+    return ans;
+}
+
+/*--------------------------------------------------------------
+ Additional Q2 — getMin() in O(1) time AND O(1) extra space
+--------------------------------------------------------------*/
+class MinStack {
+    stack<long long> st;
+    long long mn;
+
+public:
+    void push(int x){
+        if(st.empty()){
+            st.push(x);
+            mn = x;
+        }
+        else if(x >= mn){
+            st.push(x);
+        }
+        else{
+            st.push(2LL*x - mn); // encoded value
+            mn = x;
+        }
+    }
+
+    void pop(){
+        if(st.empty()) return;
+        long long t = st.top(); st.pop();
+        if(t < mn){
+            mn = 2LL*mn - t;
+        }
+    }
+
+    int top(){
+        long long t = st.top();
+        return (t < mn) ? mn : t;
+    }
+
+    int getMin(){
+        return mn;
+    }
+};
+
+/*--------------------------------------------------------------
+ Additional Q3 — Next Greater Element
+--------------------------------------------------------------*/
+vector<int> nextGreaterElement(vector<int>& arr){
+    int n = arr.size();
+    vector<int> ans(n, -1);
+    stack<int> st;
+
+    for(int i = 0; i < n; i++){
+        while(!st.empty() && arr[st.top()] < arr[i]){
+            ans[st.top()] = arr[i];
+            st.pop();
+        }
+        st.push(i);
+    }
+
+    return ans;
+}
+
+/*--------------------------------------------------------------
+ Additional Q4 — Daily Temperatures (Monotonic Stack)
+--------------------------------------------------------------*/
+vector<int> dailyTemperatures(vector<int>& t){
+    int n = t.size();
+    vector<int> ans(n,0);
+    stack<int> st;
+
+    for(int i = 0; i < n; i++){
+        while(!st.empty() && t[i] > t[st.top()]){
+            int idx = st.top(); st.pop();
+            ans[idx] = i - idx;
+        }
+        st.push(i);
+    }
+    return ans;
+}
+
+/*--------------------------------------------------------------
+ Additional Q5 — Can array A be moved to B in sorted order using stack?
+--------------------------------------------------------------*/
+bool canBeSortedUsingStack(vector<int>& A){
+    int n = A.size();
+    stack<int> st;
+    int expected = 1;
+
+    for(int x : A){
+        st.push(x);
+
+        while(!st.empty() && st.top() == expected){
+            st.pop();
+            expected++;
+        }
+    }
+    return expected == n + 1;
+}
+
+/*--------------------------------------------------------------
+ MAIN — Demo of all functions
+--------------------------------------------------------------*/
+int main(){
+    cout << "=== Assignment 3 – STACKS – Complete Program Loaded ===\n\n";
+
+    // Q2 demo
+    cout << "Reverse of DataStructure => "
+         << reverseUsingStack("DataStructure") << "\n\n";
+
+    // Q3 demo
+    cout << "Is ({[]}) balanced? => "
+         << (isBalanced("({[]})") ? "YES" : "NO") << "\n\n";
+
+    // Q4 demo
+    cout << "Infix: a+b*(c-d)\nPostfix: "
+         << infixToPostfix("a+b*(c-d)") << "\n\n";
+
+    // Q5 demo
+    cout << "Postfix evaluation of 231*+9- => "
+         << evaluatePostfix("231*+9-") << "\n\n";
+
+    // Additional Q1 demo
+    vector<int> arr1 = {4, 5, 2, 10, 8};
+    auto ns = nearestSmallerToLeft(arr1);
+    cout << "Nearest smaller to left: ";
+    for(int x : ns) cout << x << " ";
+    cout << "\n\n";
+
+    // Additional Q2 demo
+    MinStack ms;
+    ms.push(5); ms.push(2); ms.push(10); ms.push(1);
+    cout << "MinStack getMin() => " << ms.getMin() << "\n\n";
+
+    // Additional Q3 demo
+    vector<int> ngeArr = {4, 5, 2, 25};
+    auto nge = nextGreaterElement(ngeArr);
+    cout << "Next Greater Elements: ";
+    for(int x : nge) cout << x << " ";
+    cout << "\n\n";
+
+    // Additional Q4 demo
+    vector<int> temp = {73,74,75,71,69,72,76,73};
+    auto dt = dailyTemperatures(temp);
+    cout << "Daily Temperatures: ";
+    for(int x : dt) cout << x << " ";
+    cout << "\n\n";
+
+    // Additional Q5 demo
+    vector<int> A = {1,2,3,4};
+    cout << "Can A be sorted using stack? => "
+         << (canBeSortedUsingStack(A) ? "YES" : "NO") << "\n";
+
+    return 0;
+}

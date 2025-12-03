@@ -1,0 +1,306 @@
+// ============================================================================
+// LAB ASSIGNMENT 9 – GRAPHS (FULL SOLUTION)
+// Reference: Lab_Assignment 9 (Graphs).pdf  :contentReference[oaicite:1]{index=1}
+// Compile: g++ -std=c++17 Lab9_Graphs_All.cpp -O2 -o lab9
+// ============================================================================
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/* ============================================================================
+   GRAPH CLASS (Adjacency List)
+   ============================================================================ */
+class Graph {
+public:
+    int V;
+    vector<vector<pair<int,int>>> adj; // for weighted edges
+
+    Graph(int V) : V(V) {
+        adj.resize(V);
+    }
+
+    void addEdge(int u, int v, int w = 1, bool directed = false) {
+        adj[u].push_back({v, w});
+        if (!directed) adj[v].push_back({u, w});
+    }
+};
+
+/* ============================================================================
+   Q1 — BFS (Unweighted)
+   ============================================================================ */
+vector<int> BFS(Graph& g, int start) {
+    vector<int> visited(g.V, 0);
+    queue<int> q;
+    vector<int> order;
+
+    visited[start] = 1;
+    q.push(start);
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        order.push_back(u);
+
+        for (auto &p : g.adj[u]) {
+            int v = p.first;
+            if (!visited[v]) {
+                visited[v] = 1;
+                q.push(v);
+            }
+        }
+    }
+    return order;
+}
+
+/* ============================================================================
+   Q2 — DFS (recursive)
+   ============================================================================ */
+void DFSUtil(Graph& g, int u, vector<int>& vis, vector<int>& order) {
+    vis[u] = 1;
+    order.push_back(u);
+    for (auto &p : g.adj[u]) {
+        int v = p.first;
+        if (!vis[v]) DFSUtil(g, v, vis, order);
+    }
+}
+
+vector<int> DFS(Graph& g, int start) {
+    vector<int> vis(g.V, 0);
+    vector<int> order;
+    DFSUtil(g, start, vis, order);
+    return order;
+}
+
+/* ============================================================================
+   Q3 — MINIMUM SPANNING TREE (Kruskal & Prim)
+   ============================================================================ */
+
+// ---- Kruskal ---- //
+struct Edge {
+    int u, v, w;
+};
+
+struct DSU {
+    vector<int> parent, rank;
+    DSU(int n) {
+        parent.resize(n);
+        rank.resize(n,0);
+        for (int i=0;i<n;i++) parent[i]=i;
+    }
+
+    int find(int x) {
+        if (parent[x]==x) return x;
+        return parent[x]=find(parent[x]);
+    }
+
+    void unite(int x,int y){
+        x = find(x); y=find(y);
+        if (x!=y) {
+            if (rank[x]<rank[y]) swap(x,y);
+            parent[y]=x;
+            if (rank[x]==rank[y]) rank[x]++;
+        }
+    }
+};
+
+int KruskalMST(int V, vector<Edge>& edges) {
+    sort(edges.begin(), edges.end(),
+         [](auto& a, auto& b){ return a.w < b.w; });
+
+    DSU d(V);
+    int mst_cost = 0;
+
+    for (auto &e : edges) {
+        if (d.find(e.u) != d.find(e.v)) {
+            d.unite(e.u, e.v);
+            mst_cost += e.w;
+        }
+    }
+    return mst_cost;
+}
+
+// ---- Prim ---- //
+int PrimMST(Graph &g, int start = 0) {
+    vector<int> dist(g.V, INT_MAX);
+    vector<int> vis(g.V, 0);
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                   greater<pair<int,int>>> pq;
+
+    dist[start] = 0;
+    pq.push({0,start});
+
+    int mst_cost = 0;
+
+    while (!pq.empty()) {
+        auto [w, u] = pq.top(); pq.pop();
+        if (vis[u]) continue;
+        vis[u] = 1;
+        mst_cost += w;
+
+        for (auto &p : g.adj[u]) {
+            int v = p.first, wt = p.second;
+            if (!vis[v] && wt < dist[v]) {
+                dist[v] = wt;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+    return mst_cost;
+}
+
+/* ============================================================================
+   Q4 — Dijkstra (Single source shortest path)
+   ============================================================================ */
+vector<int> dijkstra(Graph& g, int src) {
+    vector<int> dist(g.V, INT_MAX);
+    dist[src] = 0;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                   greater<pair<int,int>>> pq;
+
+    pq.push({0, src});
+
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d != dist[u]) continue;
+
+        for (auto& pr : g.adj[u]) {
+            int v = pr.first, wt = pr.second;
+            if (dist[u] + wt < dist[v]) {
+                dist[v] = dist[u] + wt;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+    return dist;
+}
+
+/* ============================================================================
+   ADDITIONAL QUESTION 1 — Connected Components
+   ============================================================================ */
+int connectedComponents(int V, vector<pair<int,int>>& edges) {
+    vector<vector<int>> adj(V);
+    for (auto &e : edges) {
+        adj[e.first].push_back(e.second);
+        adj[e.second].push_back(e.first);
+    }
+
+    vector<int> vis(V, 0);
+    int count = 0;
+
+    for (int i = 0; i < V; i++) {
+        if (!vis[i]) {
+            count++;
+            queue<int> q; q.push(i); vis[i] = 1;
+
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                for (int v : adj[u]) {
+                    if (!vis[v]) {
+                        vis[v] = 1;
+                        q.push(v);
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
+/* ============================================================================
+   ADDITIONAL QUESTION 2 — Grid Dijkstra (min-cost path)
+   ============================================================================ */
+
+int minCostGrid(vector<vector<int>>& grid) {
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<int>> dist(m, vector<int>(n, INT_MAX));
+    dist[0][0] = grid[0][0];
+
+    priority_queue<vector<int>, vector<vector<int>>,
+                   greater<vector<int>>> pq;
+
+    pq.push({grid[0][0], 0, 0}); // {cost, i, j}
+
+    int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+
+    while (!pq.empty()) {
+        auto t = pq.top(); pq.pop();
+        int cost = t[0], x = t[1], y = t[2];
+
+        if (cost != dist[x][y]) continue;
+
+        if (x == m-1 && y == n-1) return cost;
+
+        for (auto &d : dirs) {
+            int nx = x + d[0], ny = y + d[1];
+            if (nx>=0 && ny>=0 && nx<m && ny<n) {
+                int newCost = cost + grid[nx][ny];
+                if (newCost < dist[nx][ny]) {
+                    dist[nx][ny] = newCost;
+                    pq.push({newCost, nx, ny});
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+/* ============================================================================
+   ADDITIONAL QUESTION 3 — Network Delay Time
+   ============================================================================ */
+
+int networkDelayTime(vector<vector<int>>& times, int N, int K) {
+    vector<vector<pair<int,int>>> adj(N+1);
+    for (auto &t : times) {
+        adj[t[0]].push_back({t[1], t[2]});
+    }
+
+    vector<int> dist(N+1, INT_MAX);
+    dist[K] = 0;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                   greater<pair<int,int>>> pq;
+    pq.push({0,K});
+
+    while (!pq.empty()) {
+        auto [d,u] = pq.top(); pq.pop();
+        if (d != dist[u]) continue;
+
+        for (auto &p : adj[u]) {
+            int v = p.first, w = p.second;
+            if (d + w < dist[v]) {
+                dist[v] = d + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+
+    int ans = *max_element(dist.begin()+1, dist.end());
+    return ans == INT_MAX ? -1 : ans;
+}
+
+/* ============================================================================
+   ADDITIONAL QUESTION 4 — Number of Islands (DFS/BFS)
+   ============================================================================ */
+
+void dfsIsland(vector<vector<int>>& g, int i, int j) {
+    int m = g.size(), n = g[0].size();
+    if (i<0 || j<0 || i>=m || j>=n || g[i][j] == 0) return;
+    g[i][j] = 0;
+    dfsIsland(g, i+1, j);
+    dfsIsland(g, i-1, j);
+    dfsIsland(g, i, j+1);
+    dfsIsland(g, i, j-1);
+}
+
+int numIslands(vector<vector<int>> grid) {
+    int m = grid.size(), n = grid[0].size(), count = 0;
+    for (int i=0;i<m;i++)
+        for (int j=0;j<n;j++)
+            if (grid[i][j] == 1) {
+                count++;
+                dfsIsland(grid, i, j);
+            }
+    return count;
+}
+

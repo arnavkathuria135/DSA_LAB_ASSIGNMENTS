@@ -1,0 +1,481 @@
+// ================================================================
+// LAB ASSIGNMENT 5 – SINGLY LINKED LIST
+// Complete C++ solutions for ALL questions & additional questions.
+// Reference: Lab_Assignment 5 (SLL).pdf  :contentReference[oaicite:1]{index=1}
+// Compile: g++ -std=c++17 SLL_Assignment.cpp -O2 -o sll
+// Run: ./sll
+// ================================================================
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/* ===============================================================
+   BASIC NODE STRUCTURE
+   =============================================================== */
+struct Node {
+    int data;
+    Node* next;
+    Node(int x) : data(x), next(NULL) {}
+};
+
+/* ===============================================================
+   Q1 — Singly Linked List with Menu-driven Operations
+   =============================================================== */
+class SinglyLinkedList {
+public:
+    Node* head;
+
+    SinglyLinkedList() { head = NULL; }
+
+    // (a) Insert at beginning
+    void insertBeginning(int x) {
+        Node* t = new Node(x);
+        t->next = head;
+        head = t;
+    }
+
+    // (b) Insert at end
+    void insertEnd(int x) {
+        Node* t = new Node(x);
+        if (!head) { head = t; return; }
+
+        Node* p = head;
+        while (p->next) p = p->next;
+        p->next = t;
+    }
+
+    // (c) Insert before/after a specific value
+    void insertBeforeValue(int key, int x) {
+        if (!head) return;
+
+        if (head->data == key) {
+            insertBeginning(x);
+            return;
+        }
+
+        Node* p = head;
+        while (p->next && p->next->data != key) p = p->next;
+
+        if (p->next) {
+            Node* t = new Node(x);
+            t->next = p->next;
+            p->next = t;
+        }
+    }
+
+    void insertAfterValue(int key, int x) {
+        Node* p = head;
+        while (p && p->data != key) p = p->next;
+
+        if (p) {
+            Node* t = new Node(x);
+            t->next = p->next;
+            p->next = t;
+        }
+    }
+
+    // (d) Delete from beginning
+    void deleteBeginning() {
+        if (!head) return;
+        Node* t = head;
+        head = head->next;
+        delete t;
+    }
+
+    // (e) Delete from end
+    void deleteEnd() {
+        if (!head) return;
+
+        if (!head->next) {
+            delete head;
+            head = NULL;
+            return;
+        }
+
+        Node* p = head;
+        while (p->next->next) p = p->next;
+
+        delete p->next;
+        p->next = NULL;
+    }
+
+    // (f) Delete a specific node by value
+    void deleteValue(int key) {
+        if (!head) return;
+
+        if (head->data == key) {
+            deleteBeginning();
+            return;
+        }
+
+        Node* p = head;
+        while (p->next && p->next->data != key) p = p->next;
+        if (p->next) {
+            Node* t = p->next;
+            p->next = t->next;
+            delete t;
+        }
+    }
+
+    // (g) Search and return position
+    int search(int key) {
+        Node* p = head;
+        int pos = 1;
+        while (p) {
+            if (p->data == key) return pos;
+            p = p->next;
+            pos++;
+        }
+        return -1;
+    }
+
+    // (h) Display list
+    void display() {
+        Node* p = head;
+        while (p) {
+            cout << p->data << " ";
+            p = p->next;
+        }
+        cout << "\n";
+    }
+};
+
+/* ===============================================================
+   Q2 — Count occurrences of a key & delete all occurrences
+   =============================================================== */
+pair<int, Node*> deleteAllOccurrences(Node* head, int key) {
+    int count = 0;
+
+    // Remove from head
+    while (head && head->data == key) {
+        Node* t = head;
+        head = head->next;
+        delete t;
+        count++;
+    }
+
+    Node* p = head;
+    while (p && p->next) {
+        if (p->next->data == key) {
+            Node* t = p->next;
+            p->next = t->next;
+            delete t;
+            count++;
+        } else {
+            p = p->next;
+        }
+    }
+    return {count, head};
+}
+
+/* ===============================================================
+   Q3 — Find middle of a linked list (fast/slow pointer)
+   =============================================================== */
+int findMiddle(Node* head) {
+    Node* slow = head;
+    Node* fast = head;
+
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    return slow ? slow->data : -1;
+}
+
+/* ===============================================================
+   Q4 — Reverse a linked list
+   =============================================================== */
+Node* reverseList(Node* head) {
+    Node* prev = NULL;
+    Node* curr = head;
+
+    while (curr) {
+        Node* nxt = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = nxt;
+    }
+    return prev;
+}
+
+/* ===============================================================
+   Additional Q1 — Intersection of two linked lists (Y-shaped)
+   =============================================================== */
+Node* getIntersectionNode(Node* headA, Node* headB) {
+    unordered_set<Node*> st;
+    while (headA) {
+        st.insert(headA);
+        headA = headA->next;
+    }
+    while (headB) {
+        if (st.count(headB)) return headB;
+        headB = headB->next;
+    }
+    return NULL;
+}
+
+/* ===============================================================
+   Additional Q2 — Reverse nodes in K-groups
+   =============================================================== */
+Node* reverseKGroup(Node* head, int k) {
+    Node* curr = head;
+    int count = 0;
+
+    // Check if we have k nodes
+    while (curr && count < k) {
+        curr = curr->next;
+        count++;
+    }
+    if (count < k) return head;
+
+    // Reverse k nodes
+    curr = head;
+    Node* prev = NULL;
+    Node* nxt = NULL;
+
+    count = 0;
+    while (curr && count < k) {
+        nxt = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = nxt;
+        count++;
+    }
+
+    head->next = reverseKGroup(curr, k);
+    return prev;
+}
+
+/* ===============================================================
+   Additional Q3 — Remove loop in linked list
+   =============================================================== */
+void removeLoop(Node* head) {
+    if (!head) return;
+
+    Node* slow = head;
+    Node* fast = head;
+
+    // Detect loop
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) break;
+    }
+
+    if (slow != fast) return; // No loop
+
+    // Move slow to head
+    slow = head;
+    Node* prev = NULL;
+
+    while (slow != fast) {
+        prev = fast;
+        slow = slow->next;
+        fast = fast->next;
+    }
+
+    // prev is the last node in loop
+    prev->next = NULL;
+}
+
+/* ===============================================================
+   Additional Q4 — Rotate list left by K positions
+   =============================================================== */
+Node* rotateLeft(Node* head, int k) {
+    if (!head || k == 0) return head;
+
+    // Compute length
+    Node* p = head;
+    int len = 1;
+    while (p->next) {
+        p = p->next;
+        len++;
+    }
+
+    k = k % len;
+    if (k == 0) return head;
+
+    // Make it circular
+    p->next = head;
+
+    // Move to new tail
+    int steps = len - k;
+    while (steps--) p = p->next;
+
+    Node* newHead = p->next;
+    p->next = NULL;
+    return newHead;
+}
+
+/* ===============================================================
+   Additional Q5 — Add two polynomials using linked lists
+   Input format: list of [coeff, power]
+   =============================================================== */
+struct PolyNode {
+    int coeff, power;
+    PolyNode* next;
+    PolyNode(int c, int p) : coeff(c), power(p), next(NULL) {}
+};
+
+PolyNode* addPolynomials(PolyNode* p1, PolyNode* p2) {
+    PolyNode* head = NULL;
+    PolyNode* tail = NULL;
+
+    while (p1 && p2) {
+        PolyNode* t = NULL;
+
+        if (p1->power == p2->power) {
+            t = new PolyNode(p1->coeff + p2->coeff, p1->power);
+            p1 = p1->next;
+            p2 = p2->next;
+        }
+        else if (p1->power > p2->power) {
+            t = new PolyNode(p1->coeff, p1->power);
+            p1 = p1->next;
+        }
+        else {
+            t = new PolyNode(p2->coeff, p2->power);
+            p2 = p2->next;
+        }
+
+        if (!head) head = tail = t;
+        else { tail->next = t; tail = t; }
+    }
+
+    while (p1) {
+        PolyNode* t = new PolyNode(p1->coeff, p1->power);
+        if (!head) head = tail = t;
+        else { tail->next = t; tail = t; }
+        p1 = p1->next;
+    }
+
+    while (p2) {
+        PolyNode* t = new PolyNode(p2->coeff, p2->power);
+        if (!head) head = tail = t;
+        else { tail->next = t; tail = t; }
+        p2 = p2->next;
+    }
+
+    return head;
+}
+
+/* ===============================================================
+   Helper function to print polynomial
+   =============================================================== */
+void printPoly(PolyNode* p) {
+    while (p) {
+        cout << "[" << p->coeff << "," << p->power << "]";
+        if (p->next) cout << " -> ";
+        p = p->next;
+    }
+    cout << "\n";
+}
+
+/* ===============================================================
+   MAIN — DEMO OF ALL FUNCTIONS
+   =============================================================== */
+int main() {
+    cout << "=== Lab Assignment 5 – SLL: All Solutions Loaded ===\n\n";
+
+    // Q1 basic SLL operations demo
+    SinglyLinkedList sll;
+    sll.insertBeginning(10);
+    sll.insertEnd(20);
+    sll.insertEnd(30);
+    sll.insertBeforeValue(20, 15);
+    sll.insertAfterValue(20, 25);
+
+    cout << "List after insertions: ";
+    sll.display();
+
+    sll.deleteBeginning();
+    sll.deleteEnd();
+    cout << "List after deletions: ";
+    sll.display();
+
+    cout << "Position of 20: " << sll.search(20) << "\n\n";
+
+    // Q2 delete all occurrences
+    Node* head2 = NULL;
+    vector<int> arr = {1,2,1,2,1,3,1};
+    for (int x : arr) {
+        Node* t = new Node(x);
+        t->next = head2;
+        head2 = t;
+    }
+    auto res = deleteAllOccurrences(head2, 1);
+    cout << "Count of '1': " << res.first << "\nUpdated list: ";
+    Node* temp = res.second;
+    while (temp) { cout << temp->data << " "; temp = temp->next; }
+    cout << "\n\n";
+
+    // Q3 find middle
+    SinglyLinkedList mlist;
+    for (int i = 1; i <= 5; i++) mlist.insertEnd(i);
+    cout << "Middle element: " << findMiddle(mlist.head) << "\n\n";
+
+    // Q4 reverse
+    Node* rev = reverseList(mlist.head);
+    cout << "Reversed list: ";
+    temp = rev;
+    while (temp) { cout << temp->data << " "; temp = temp->next; }
+    cout << "\n\n";
+
+    // Additional Q1 intersection
+    Node* A1 = new Node(4);
+    A1->next = new Node(1);
+    Node* common = new Node(8);
+    common->next = new Node(5);
+    A1->next->next = common;
+
+    Node* B1 = new Node(5);
+    B1->next = new Node(6);
+    B1->next->next = new Node(1);
+    B1->next->next->next = common;
+
+    Node* inter = getIntersectionNode(A1, B1);
+    cout << "Intersection at: " << (inter ? inter->data : -1) << "\n\n";
+
+    // Additional Q2 reverse in K-groups
+    SinglyLinkedList klist;
+    for (int i=1;i<=9;i++) klist.insertEnd(i);
+    Node* krev = reverseKGroup(klist.head, 3);
+    cout << "K-group reversed: ";
+    temp = krev;
+    while (temp) { cout << temp->data << " "; temp = temp->next; }
+    cout << "\n\n";
+
+    // Additional Q3 remove loop demo
+    Node* loopHead = new Node(1);
+    loopHead->next = new Node(2);
+    loopHead->next->next = new Node(3);
+    loopHead->next->next->next = loopHead->next; // loop
+    removeLoop(loopHead);
+    cout << "Loop removed successfully.\n\n";
+
+    // Additional Q4 rotate left by K
+    SinglyLinkedList rlist;
+    for (int i=1;i<=6;i++) rlist.insertEnd(i);
+    Node* rrot = rotateLeft(rlist.head, 4);
+    cout << "Left rotated list: ";
+    temp = rrot;
+    while (temp) { cout << temp->data << " "; temp = temp->next; }
+    cout << "\n\n";
+
+    // Additional Q5 polynomial addition
+    PolyNode* P1 = new PolyNode(5,2);
+    P1->next = new PolyNode(4,1);
+    P1->next->next = new PolyNode(2,0);
+
+    PolyNode* P2 = new PolyNode(5,1);
+    P2->next = new PolyNode(5,0);
+
+    PolyNode* Psum = addPolynomials(P1, P2);
+
+    cout << "Sum of polynomials: ";
+    printPoly(Psum);
+
+    cout << "\n=== End of Assignment 5 ===\n";
+    return 0;
+}

@@ -1,0 +1,309 @@
+// ================================================================
+// LAB ASSIGNMENT 7 – SORTING (All solutions in one file)
+// Reference: Lab_Assignment 7 (Sorting).pdf  :contentReference[oaicite:1]{index=1}
+// Compile: g++ -std=c++17 Lab7_Sorting_All.cpp -O2 -o lab7
+// Run: ./lab7
+// ================================================================
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/* -------------------------
+   1) Classic sorting algorithms
+   ------------------------- */
+
+// a) Selection Sort
+void selectionSort(vector<int>& a) {
+    int n = a.size();
+    for (int i = 0; i < n-1; ++i) {
+        int minIdx = i;
+        for (int j = i+1; j < n; ++j)
+            if (a[j] < a[minIdx]) minIdx = j;
+        swap(a[i], a[minIdx]);
+    }
+}
+
+// b) Insertion Sort
+void insertionSort(vector<int>& a) {
+    int n = a.size();
+    for (int i = 1; i < n; ++i) {
+        int key = a[i];
+        int j = i - 1;
+        while (j >= 0 && a[j] > key) {
+            a[j+1] = a[j];
+            --j;
+        }
+        a[j+1] = key;
+    }
+}
+
+// c) Bubble Sort (optimized)
+void bubbleSort(vector<int>& a) {
+    int n = a.size();
+    for (int i = 0; i < n-1; ++i) {
+        bool swapped = false;
+        for (int j = 0; j < n-1-i; ++j) {
+            if (a[j] > a[j+1]) {
+                swap(a[j], a[j+1]);
+                swapped = true;
+            }
+        }
+        if (!swapped) break;
+    }
+}
+
+// d) Merge Sort
+void mergeVec(vector<int>& a, int l, int m, int r) {
+    int n1 = m - l + 1, n2 = r - m;
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; ++i) L[i] = a[l + i];
+    for (int j = 0; j < n2; ++j) R[j] = a[m + 1 + j];
+    int i = 0, j = 0, k = l;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) a[k++] = L[i++];
+        else a[k++] = R[j++];
+    }
+    while (i < n1) a[k++] = L[i++];
+    while (j < n2) a[k++] = R[j++];
+}
+void mergeSortRec(vector<int>& a, int l, int r) {
+    if (l >= r) return;
+    int m = l + (r - l)/2;
+    mergeSortRec(a, l, m);
+    mergeSortRec(a, m+1, r);
+    mergeVec(a, l, m, r);
+}
+void mergeSort(vector<int>& a) {
+    if (!a.empty()) mergeSortRec(a, 0, (int)a.size()-1);
+}
+
+// e) Quick Sort (Lomuto partition)
+int partitionL(vector<int>& a, int l, int r) {
+    int pivot = a[r];
+    int i = l;
+    for (int j = l; j < r; ++j) {
+        if (a[j] < pivot) swap(a[i++], a[j]);
+    }
+    swap(a[i], a[r]);
+    return i;
+}
+void quickSortRec(vector<int>& a, int l, int r) {
+    if (l < r) {
+        int p = partitionL(a, l, r);
+        quickSortRec(a, l, p-1);
+        quickSortRec(a, p+1, r);
+    }
+}
+void quickSort(vector<int>& a) {
+    if (!a.empty()) quickSortRec(a, 0, (int)a.size()-1);
+}
+
+/* -------------------------
+   2) Improved selection sort: pick min & max on each pass
+   ------------------------- */
+void selectionMinMaxSort(vector<int>& a) {
+    int n = a.size();
+    int left = 0, right = n - 1;
+    while (left < right) {
+        int minIdx = left, maxIdx = left;
+        for (int i = left; i <= right; ++i) {
+            if (a[i] < a[minIdx]) minIdx = i;
+            if (a[i] > a[maxIdx]) maxIdx = i;
+        }
+        swap(a[left], a[minIdx]);
+        // if max was at left, its index has moved to minIdx
+        if (maxIdx == left) maxIdx = minIdx;
+        swap(a[right], a[maxIdx]);
+        ++left; --right;
+    }
+}
+
+/* -------------------------
+   Additional 1: Majority Element (Boyer-Moore Voting)
+   ------------------------- */
+int majorityElement(const vector<int>& nums) {
+    int count = 0, candidate = 0;
+    for (int x : nums) {
+        if (count == 0) candidate = x;
+        count += (x == candidate) ? 1 : -1;
+    }
+    return candidate;
+}
+
+/* -------------------------
+   Additional 2: Top K Frequent with tie-breaker (larger number preferred)
+   We return vector<int> of size k in order of preference (highest freq first,
+   if freq equal, larger number first).
+   ------------------------- */
+vector<int> topKFrequentTie(const vector<int>& arr, int k) {
+    unordered_map<int,int> freq;
+    for (int x : arr) freq[x]++;
+    // Custom comparator: higher freq first; if tie, larger value first
+    auto cmp = [&](const pair<int,int>& a, const pair<int,int>& b) {
+        if (a.second != b.second) return a.second < b.second; // min-heap by freq
+        return a.first < b.first; // min-heap by value so smaller popped first -> we want larger kept
+    };
+    priority_queue<pair<int,int>, vector<pair<int,int>>, decltype(cmp)> pq(cmp);
+    for (auto &p : freq) {
+        pq.push(p);
+        if ((int)pq.size() > k) pq.pop();
+    }
+    vector<int> res;
+    while (!pq.empty()) {
+        res.push_back(pq.top().first);
+        pq.pop();
+    }
+    reverse(res.begin(), res.end());
+    return res;
+}
+
+/* -------------------------
+   Additional 3: Maximum Sum Combination (top k sums from two arrays)
+   Approach: sort both descending, use max-heap over (i,j) pairs and visited set
+   ------------------------- */
+vector<int> maxSumCombination(vector<int> a, vector<int> b, int k) {
+    int n = a.size();
+    sort(a.begin(), a.end(), greater<int>());
+    sort(b.begin(), b.end(), greater<int>());
+    vector<int> result;
+    if (n == 0 || k == 0) return result;
+
+    // max-heap storing (sum, i, j)
+    struct Node { int sum; int i; int j; };
+    struct Cmp {
+        bool operator()(Node const& A, Node const& B) const {
+            return A.sum < B.sum;
+        }
+    };
+    priority_queue<Node, vector<Node>, Cmp> pq;
+    set<pair<int,int>> seen;
+    pq.push({a[0]+b[0], 0, 0});
+    seen.insert({0,0});
+
+    while (!pq.empty() && (int)result.size() < k) {
+        Node cur = pq.top(); pq.pop();
+        result.push_back(cur.sum);
+        int i = cur.i, j = cur.j;
+        if (i+1 < n && !seen.count({i+1, j})) {
+            pq.push({a[i+1]+b[j], i+1, j});
+            seen.insert({i+1,j});
+        }
+        if (j+1 < n && !seen.count({i, j+1})) {
+            pq.push({a[i]+b[j+1], i, j+1});
+            seen.insert({i,j+1});
+        }
+    }
+    return result;
+}
+
+/* -------------------------
+   Additional 4: Sort even-placed (index 0-based) in increasing and odd-placed in decreasing.
+   Output should contain even-placed sorted ascending followed by odd-placed sorted descending.
+   ------------------------- */
+vector<int> sortEvenOddPlaced(const vector<int>& arr) {
+    vector<int> evenVals, oddVals;
+    for (int i = 0; i < (int)arr.size(); ++i) {
+        if (i % 2 == 0) evenVals.push_back(arr[i]);
+        else oddVals.push_back(arr[i]);
+    }
+    sort(evenVals.begin(), evenVals.end()); // increasing
+    sort(oddVals.begin(), oddVals.end(), greater<int>()); // decreasing
+
+    vector<int> res;
+    for (int x : evenVals) res.push_back(x);
+    for (int x : oddVals) res.push_back(x);
+    return res;
+}
+
+/* -------------------------
+   Additional 5: Maximum Ice Cream Bars using COUNTING SORT
+   We assume costs are non-negative and not extremely huge. We compute max(costs) then counting.
+   Returns maximum number of bars can buy with 'coins'.
+   ------------------------- */
+int maxIceCreamCounting(vector<int> costs, int coins) {
+    if (costs.empty()) return 0;
+    int maxCost = *max_element(costs.begin(), costs.end());
+    vector<int> cnt(maxCost + 1);
+    for (int c : costs) if (c >= 0) cnt[c]++;
+
+    int bought = 0;
+    for (int price = 0; price <= maxCost; ++price) {
+        if (cnt[price] == 0) continue;
+        int canBuy = min(cnt[price], coins / max(1, price));
+        // handle price == 0: infinite? Problem implies positive costs; if price==0, buy all
+        if (price == 0) {
+            bought += cnt[price];
+            continue;
+        }
+        int affordable = min(cnt[price], coins / price);
+        bought += affordable;
+        coins -= affordable * price;
+        if (coins <= 0) break;
+    }
+    return bought;
+}
+
+/* -------------------------
+   Helpers
+   ------------------------- */
+template<typename T>
+void printVec(const vector<T>& v) {
+    for (auto &x : v) cout << x << " ";
+    cout << "\n";
+}
+
+/* -------------------------
+   MAIN: Demo examples for each implemented function
+   ------------------------- */
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout << "=== Lab Assignment 7 – Sorting: Demos ===\n\n";
+
+    // Demo sorts
+    vector<int> s = {64,25,12,22,11};
+    vector<int> a;
+
+    a = s; selectionSort(a); cout << "SelectionSort: "; printVec(a);
+    a = s; insertionSort(a); cout << "InsertionSort: "; printVec(a);
+    a = s; bubbleSort(a); cout << "BubbleSort: "; printVec(a);
+    a = s; mergeSort(a); cout << "MergeSort: "; printVec(a);
+    a = s; quickSort(a); cout << "QuickSort: "; printVec(a);
+
+    // Improved selection (min-max)
+    a = {9,1,8,2,7,3,6,4,5};
+    selectionMinMaxSort(a);
+    cout << "SelectionMinMaxSort: "; printVec(a);
+
+    // Additional 1: Majority Element
+    vector<int> maj = {2,2,1,1,1,2,2};
+    cout << "Majority Element: " << majorityElement(maj) << "\n\n";
+
+    // Additional 2: Top K frequent with tie-breaker
+    vector<int> arrTk = {3,1,4,4,5,2,6,1};
+    auto topk = topKFrequentTie(arrTk, 2);
+    cout << "Top K Frequent (k=2): "; printVec(topk);
+
+    // Additional 3: Max sum combinations
+    vector<int> A = {3,2}, B = {1,4};
+    auto tops = maxSumCombination(A,B,2);
+    cout << "MaxSumCombination top2: "; printVec(tops);
+
+    // Additional 4: Sort even-placed increasing & odd-placed decreasing
+    vector<int> arrEO = {0,1,2,3,4,5,6,7};
+    auto eo = sortEvenOddPlaced(arrEO);
+    cout << "Even-place inc + Odd-place dec: "; printVec(eo);
+
+    // Additional 5: Maximum Ice Cream Bars using counting sort
+    vector<int> costs1 = {1,3,2,4,1};
+    cout << "Max ice creams (coins=7): " << maxIceCreamCounting(costs1, 7) << "\n";
+
+    vector<int> costs2 = {10,6,8,7,7,8};
+    cout << "Max ice creams (coins=5): " << maxIceCreamCounting(costs2, 5) << "\n";
+
+    vector<int> costs3 = {1,6,3,1,2,5};
+    cout << "Max ice creams (coins=20): " << maxIceCreamCounting(costs3, 20) << "\n";
+
+    cout << "\n=== End of Demos ===\n";
+    return 0;
+}
